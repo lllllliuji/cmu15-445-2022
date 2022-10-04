@@ -299,6 +299,7 @@ class Trie {
     if ((*p)->IsEndNode()) {
       is_success = false;
     } else {
+      // upgrade to TrieNodeWithValue
       auto tmp = new TrieNodeWithValue<T>(std::move(*(*p)), value);
       (*p).reset(tmp);
     }
@@ -348,6 +349,7 @@ class Trie {
         auto q = history.back();
         history.pop_back();
         if ((*q)->HasChildren() || (*q)->IsEndNode()) {
+          // encounter a endnode or anthoer endnode's parent
           break;
         }
         (*(father[q].first))->RemoveChildNode(father[q].second);
@@ -394,6 +396,7 @@ class Trie {
       }
     }
     if (*success && (*p)->IsEndNode()) {
+      // if type does not match, return nullptr
       auto vptr = dynamic_cast<TrieNodeWithValue<T> *>((*p).get());
       if (vptr) {
         ret = vptr->GetValue();
@@ -401,6 +404,7 @@ class Trie {
         *success = false;
       }
     } else {
+      // node does not exit or is not end node
       *success = false;
     }
     latch_.RUnlock();
