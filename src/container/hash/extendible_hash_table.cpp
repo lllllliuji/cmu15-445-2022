@@ -103,7 +103,7 @@ void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
     new_list.splice(new_list.end(), old_list, old_list.begin(), divide_point);
     for (size_t i = 0; i < dir_.size(); i++) {
       if (dir_[i] == target_bucket) {
-        if (i & mask) {
+        if ((i & mask) != 0U) {
           dir_[i] = new_bucket;
         }
       }
