@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <fstream>
 #include <iostream>
 #include <limits>
 #include <list>
@@ -91,7 +92,10 @@ class LRUKReplacer {
     auto InsertNode(const std::shared_ptr<DLinkedNode> &node) -> bool {
       std::shared_ptr<DLinkedNode> ptr;
       for (ptr = head_->next_; ptr != tail_; ptr = ptr->next_) {
-        if (ptr->GetKDis() >= node->GetKDis()) {
+        if (ptr->GetKDis() > node->GetKDis()) {
+          break;
+        }
+        if (ptr->GetKDis() == node->GetKDis() && ptr->records_.front() > node->records_.front()) {
           break;
         }
       }

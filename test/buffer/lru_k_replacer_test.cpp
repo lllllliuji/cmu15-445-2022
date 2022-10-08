@@ -96,5 +96,27 @@ TEST(LRUKReplacerTest, SampleTest) {
   ASSERT_EQ(0, lru_replacer.Size());
   lru_replacer.Remove(1);
   ASSERT_EQ(0, lru_replacer.Size());
+
+  LRUKReplacer lru_replacer_1(10, 3);
+  int result;
+  lru_replacer_1.RecordAccess(1);  // ts=0
+  lru_replacer_1.RecordAccess(2);  // ts=1
+  lru_replacer_1.RecordAccess(3);  // ts=2
+  lru_replacer_1.RecordAccess(4);  // ts=3
+  lru_replacer_1.RecordAccess(1);  // ts=4
+  lru_replacer_1.RecordAccess(2);  // ts=5
+  lru_replacer_1.RecordAccess(3);  // ts=6
+  lru_replacer_1.RecordAccess(1);  // ts=7
+  lru_replacer_1.RecordAccess(2);  // ts=8
+  lru_replacer_1.SetEvictable(1, true);
+  lru_replacer_1.SetEvictable(2, true);
+  lru_replacer_1.SetEvictable(3, true);
+  lru_replacer_1.SetEvictable(4, true);
+
+  // Max backward k distance follow lru
+  ASSERT_EQ(true, lru_replacer_1.Evict(&result)) << "Check your return value behavior for LRUKReplacer::Evict";
+  ASSERT_EQ(3, result) << "Check your return value behavior for LRUKReplacer::Evict";
+  lru_replacer_1.RecordAccess(4);  // ts=9
+  lru_replacer_1.RecordAccess(4);  // ts=10
 }
 }  // namespace bustub
