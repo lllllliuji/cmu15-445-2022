@@ -12,9 +12,12 @@
 
 #pragma once
 
+#include <iostream>
 #include <limits>
 #include <list>
+#include <memory>
 #include <mutex>  // NOLINT
+#include <queue>
 #include <unordered_map>
 #include <vector>
 
@@ -36,6 +39,88 @@ namespace bustub {
  */
 class LRUKReplacer {
  public:
+  struct DLinkedNode {
+    size_t k_;
+    frame_id_t id_;
+    bool is_evictable_;
+    std::shared_ptr<DLinkedNode> next_;
+    std::weak_ptr<DLinkedNode> prev_;
+    std::queue<std::chrono::system_clock::rep> records_;
+
+    explicit DLinkedNode(frame_id_t id, size_t k) : k_(k), id_(id), is_evictable_(false) { Update(); }
+
+    void Update() { records_.push(-std::chrono::system_clock::now().time_since_epoch().count()); }
+
+    auto GetKDis() -> int64_t {
+      if (records_.size() < k_) {
+        return INT64_MAX;
+      }
+      while (records_.size() > k_) {
+        records_.pop();
+      }
+      return records_.front();
+    }
+  };
+
+  class DLinkedList {
+   public:
+    DLinkedList() {
+      head_ = std::make_shared<DLinkedNode>(-1, 0);
+      tail_ = std::make_shared<DLinkedNode>(-1, 0);
+      head_->next_ = tail_;
+      tail_->prev_ = head_;
+    }
+
+    ~DLinkedList() = default;
+
+    void Print() {
+      for (auto ptr = head_->next_; ptr != tail_; ptr = ptr->next_) {
+        std::cout << "{" << ptr->id_ << ", " << ptr->is_evictable_ << ", " << ptr->GetKDis() << "}"
+                  << ", ";
+      }
+      std::cout << std::endl;
+    }
+
+    auto RemoveNode(const std::shared_ptr<DLinkedNode> &node) -> bool {
+      auto prev = node->prev_.lock();
+      prev->next_ = node->next_;
+      node->next_->prev_ = prev;
+      return true;
+    }
+
+    auto InsertNode(const std::shared_ptr<DLinkedNode> &node) -> bool {
+      std::shared_ptr<DLinkedNode> ptr;
+      for (ptr = head_->next_; ptr != tail_; ptr = ptr->next_) {
+        if (ptr->GetKDis() >= node->GetKDis()) {
+          break;
+        }
+      }
+      auto prev = ptr->prev_.lock();
+      prev->next_ = node;
+      node->prev_ = prev;
+      node->next_ = ptr;
+      ptr->prev_ = node;
+      return true;
+    }
+
+    auto RemoveTarget() -> std::shared_ptr<DLinkedNode> {
+      auto target = tail_->prev_.lock();
+      for (; target != head_; target = target->prev_.lock()) {
+        if (target->is_evictable_) {
+          break;
+        }
+      }
+      if (target == head_) {
+        return nullptr;
+      }
+      RemoveNode(target);
+      return target;
+    }
+
+   private:
+    std::shared_ptr<DLinkedNode> head_;
+    std::shared_ptr<DLinkedNode> tail_;
+  };
   /**
    *
    * TODO(P1): Add implementation
@@ -132,6 +217,8 @@ class LRUKReplacer {
    */
   auto Size() -> size_t;
 
+  void Print() { list_->Print(); }
+
  private:
   // TODO(student): implement me! You can replace these member variables as you like.
   // Remove maybe_unused if you start using them.
@@ -139,6 +226,8 @@ class LRUKReplacer {
   [[maybe_unused]] size_t curr_size_{0};
   [[maybe_unused]] size_t replacer_size_;
   [[maybe_unused]] size_t k_;
+  std::shared_ptr<DLinkedList> list_;
+  std::unordered_map<frame_id_t, std::shared_ptr<DLinkedNode>> lru_cache_;
   std::mutex latch_;
 };
 
