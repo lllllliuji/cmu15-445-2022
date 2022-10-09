@@ -31,9 +31,9 @@ BufferPoolManagerInstance::BufferPoolManagerInstance(size_t pool_size, DiskManag
   }
 
   // TODO(students): remove this line after you have implemented the buffer pool manager
-  throw NotImplementedException(
-      "BufferPoolManager is not implemented yet. If you have finished implementing BPM, please remove the throw "
-      "exception line in `buffer_pool_manager_instance.cpp`.");
+  // throw NotImplementedException(
+  //     "BufferPoolManager is not implemented yet. If you have finished implementing BPM, please remove the throw "
+  //     "exception line in `buffer_pool_manager_instance.cpp`.");
 }
 
 BufferPoolManagerInstance::~BufferPoolManagerInstance() {
@@ -42,17 +42,115 @@ BufferPoolManagerInstance::~BufferPoolManagerInstance() {
   delete replacer_;
 }
 
-auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * { return nullptr; }
+auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * {
+  std::scoped_lock<std::mutex> lock(latch_);
+  frame_id_t frame_id;
+  if (!GetNewFrame(frame_id)) {
+    return nullptr;
+  }
+  *page_id = AllocatePage();
+  pages_[frame_id].WLatch();
+  pages_[frame_id].page_id_ = *page_id;
+  pages_[frame_id].WUnlatch();
+  page_table_->Insert(*page_id, frame_id);
+  replacer_->RecordAccess(frame_id);
+  replacer_->SetEvictable(frame_id, false);
+  PinPage(frame_id);
+  return pages_ + frame_id;
+}
 
-auto BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) -> Page * { return nullptr; }
+auto BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) -> Page * {
+  std::scoped_lock<std::mutex> lock(latch_);
+  frame_id_t frame_id;
+  if (page_table_->Find(page_id, frame_id)) {
+    PinPage(frame_id);
+    return pages_ + frame_id;
+  }
+  if (!GetNewFrame(frame_id)) {
+    return nullptr;
+  }
+  pages_[frame_id].WLatch();
+  pages_[frame_id].page_id_ = page_id;
+  disk_manager_->ReadPage(page_id, pages_[frame_id].data_);
+  pages_[frame_id].WUnlatch();
+  page_table_->Insert(page_id, frame_id);
+  replacer_->RecordAccess(frame_id);
+  replacer_->SetEvictable(frame_id, false);
+  PinPage(frame_id);
+  return pages_ + frame_id;
+}
 
-auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> bool { return false; }
+auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> bool {
+  std::scoped_lock<std::mutex> lock(latch_);
+  frame_id_t frame_id;
+  if (!page_table_->Find(page_id, frame_id)) {
+    return false;
+  }
+  bool is_zero = false;
+  pages_[frame_id].RLatch();
+  if (pages_[frame_id].pin_count_ == 0) {
+    is_zero = true;
+  }
+  pages_[frame_id].RUnlatch();
+  if (is_zero) {
+    return false;
+  }
+  pages_[frame_id].WLatch();
+  pages_[frame_id].pin_count_--;
+  if (pages_[frame_id].pin_count_ == 0) {
+    replacer_->SetEvictable(frame_id, true);
+  }
+  pages_[frame_id].is_dirty_ = is_dirty;
+  pages_[frame_id].WUnlatch();
+  return true;
+}
 
-auto BufferPoolManagerInstance::FlushPgImp(page_id_t page_id) -> bool { return false; }
+auto BufferPoolManagerInstance::FlushPgImp(page_id_t page_id) -> bool {
+  std::scoped_lock<std::mutex> lock(latch_);
+  frame_id_t frame_id;
+  if (!page_table_->Find(page_id, frame_id)) {
+    return false;
+  }
+  pages_[frame_id].WLatch();
+  disk_manager_->WritePage(pages_[frame_id].GetPageId(), pages_[frame_id].GetData());
+  pages_[frame_id].is_dirty_ = false;
+  pages_[frame_id].WUnlatch();
+  return true;
+}
 
-void BufferPoolManagerInstance::FlushAllPgsImp() {}
+void BufferPoolManagerInstance::FlushAllPgsImp() {
+  std::scoped_lock<std::mutex> lock(latch_);
+  frame_id_t frame_id;
+  for (size_t i = 0; i < pool_size_; i++) {
+    pages_[i].WLatch();
+    if (page_table_->Find(pages_[i].page_id_, frame_id)) {
+      disk_manager_->WritePage(pages_[frame_id].GetPageId(), pages_[frame_id].GetData());
+      pages_[frame_id].is_dirty_ = false;
+    }
+    pages_[i].WUnlatch();
+  }
+}
 
-auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool { return false; }
+auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
+  std::scoped_lock<std::mutex> lock(latch_);
+  frame_id_t frame_id;
+  if (!page_table_->Find(page_id, frame_id)) {
+    return true;
+  }
+  bool success = true;
+  pages_[frame_id].RLatch();
+  if (pages_[frame_id].pin_count_ > 0) {
+    success = false;
+  }
+  pages_[frame_id].RUnlatch();
+  if (success) {
+    ResetPage(page_id);
+    page_table_->Remove(page_id);
+    replacer_->Remove(frame_id);
+    free_list_.emplace_back(frame_id);
+  }
+  return success;
+}
 
 auto BufferPoolManagerInstance::AllocatePage() -> page_id_t { return next_page_id_++; }
 
