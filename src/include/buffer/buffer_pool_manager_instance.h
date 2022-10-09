@@ -52,16 +52,6 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   /** @brief Return the pointer to all the pages in the buffer pool. */
   auto GetPages() -> Page * { return pages_; }
 
-  auto GetLruSize() -> size_t { return replacer_->Size(); }
-
-  auto GetFreeListSize() -> size_t {
-    return free_list_.size();
-  }
-
-  void PrintLru() {
-    replacer_->Print();
-  }
-
  protected:
   /**
    * TODO(P1): Add implementation
@@ -215,7 +205,7 @@ class BufferPoolManagerInstance : public BufferPoolManager {
     }
     return false;
   }
-  
+
   void PinPage(frame_id_t frame_id) {
     pages_[frame_id].WLatch();
     pages_[frame_id].pin_count_++;

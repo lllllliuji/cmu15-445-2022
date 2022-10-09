@@ -76,9 +76,7 @@ class LRUKReplacer {
 
     void Print() {
       for (auto ptr = head_->next_; ptr != tail_; ptr = ptr->next_) {
-        std::cout << "{" << ptr->id_ << ", " << ptr->is_evictable_ << ", " 
-        // << ptr->GetKDis() 
-        << "}"
+        std::cout << "{" << ptr->id_ << ", " << ptr->is_evictable_ << ", " << ptr->GetKDis() << "}"
                   << ", ";
       }
       std::cout << std::endl;
