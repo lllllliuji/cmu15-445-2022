@@ -179,12 +179,10 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   // TODO(student): You may add additional private members and helper functions
  private:
   void ResetPage(frame_id_t frame_id) {
-    pages_[frame_id].WLatch();
     pages_[frame_id].page_id_ = INVALID_PAGE_ID;
     pages_[frame_id].pin_count_ = 0;
     pages_[frame_id].is_dirty_ = false;
     pages_[frame_id].ResetMemory();
-    pages_[frame_id].WUnlatch();
   }
 
   auto GetNewFrame(frame_id_t &frame_id) -> bool {
@@ -199,8 +197,8 @@ class BufferPoolManagerInstance : public BufferPoolManager {
       if (pages_[frame_id].IsDirty()) {
         disk_manager_->WritePage(pages_[frame_id].GetPageId(), pages_[frame_id].GetData());
       }
-      pages_[frame_id].WUnlatch();
       ResetPage(frame_id);
+      pages_[frame_id].WUnlatch();
       return true;
     }
     return false;

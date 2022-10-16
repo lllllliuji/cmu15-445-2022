@@ -88,16 +88,11 @@ auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> 
   if (!page_table_->Find(page_id, frame_id)) {
     return false;
   }
-  bool is_zero = false;
-  pages_[frame_id].RLatch();
+  pages_[frame_id].WLatch();
   if (pages_[frame_id].pin_count_ == 0) {
-    is_zero = true;
-  }
-  pages_[frame_id].RUnlatch();
-  if (is_zero) {
+    pages_[frame_id].WUnlatch();
     return false;
   }
-  pages_[frame_id].WLatch();
   pages_[frame_id].pin_count_--;
   if (pages_[frame_id].pin_count_ == 0) {
     replacer_->SetEvictable(frame_id, true);
@@ -139,19 +134,17 @@ auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
   if (!page_table_->Find(page_id, frame_id)) {
     return true;
   }
-  bool success = true;
   pages_[frame_id].RLatch();
   if (pages_[frame_id].pin_count_ > 0) {
-    success = false;
+    pages_[frame_id].RUnlatch();
+    return false;
   }
+  ResetPage(frame_id);
+  page_table_->Remove(page_id);
+  replacer_->Remove(frame_id);
+  free_list_.emplace_back(frame_id);
   pages_[frame_id].RUnlatch();
-  if (success) {
-    ResetPage(frame_id);
-    page_table_->Remove(page_id);
-    replacer_->Remove(frame_id);
-    free_list_.emplace_back(frame_id);
-  }
-  return success;
+  return true;
 }
 
 auto BufferPoolManagerInstance::AllocatePage() -> page_id_t { return next_page_id_++; }
