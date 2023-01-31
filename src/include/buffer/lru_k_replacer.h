@@ -43,12 +43,12 @@ class LRUKReplacer {
   struct DLinkedNode {
     size_t k_;
     frame_id_t id_;
-    bool is_evictable_;
+    bool is_evictable_{false};
     std::shared_ptr<DLinkedNode> next_;
     std::weak_ptr<DLinkedNode> prev_;
     std::queue<std::chrono::system_clock::rep> records_;
 
-    explicit DLinkedNode(frame_id_t id, size_t k) : k_(k), id_(id), is_evictable_(false) { Update(); }
+    explicit DLinkedNode(frame_id_t id, size_t k) : k_(k), id_(id) { Update(); }
 
     void Update() { records_.push(-std::chrono::system_clock::now().time_since_epoch().count()); }
 
