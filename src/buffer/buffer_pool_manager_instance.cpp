@@ -143,6 +143,7 @@ auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
   page_table_->Remove(page_id);
   replacer_->Remove(frame_id);
   free_list_.emplace_back(frame_id);
+  DeallocatePage(page_id);
   pages_[frame_id].RUnlatch();
   return true;
 }

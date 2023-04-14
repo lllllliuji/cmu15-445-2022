@@ -14,10 +14,13 @@
 #include <string>
 #include <vector>
 
+#include "common/config.h"
 #include "concurrency/transaction.h"
 #include "storage/index/index_iterator.h"
 #include "storage/page/b_plus_tree_internal_page.h"
 #include "storage/page/b_plus_tree_leaf_page.h"
+#include "storage/page/b_plus_tree_page.h"
+#include "storage/page/page.h"
 
 namespace bustub {
 
@@ -75,6 +78,24 @@ class BPlusTree {
   void RemoveFromFile(const std::string &file_name, Transaction *transaction = nullptr);
 
  private:
+  auto FindLeaf(const KeyType &key) -> page_id_t;
+
+  auto SplitInternal(page_id_t internal_page_id) -> page_id_t;
+
+  auto SplitLeaf(page_id_t leaf_page_id) -> page_id_t;
+
+  void InsertInParent(page_id_t l_page_id, page_id_t r_page_id);
+
+  auto InsertInLeaf(page_id_t leaf_page_id, const KeyType &key, const ValueType &value) -> bool;
+
+  void Delete(page_id_t page_id, const KeyType &key);
+
+  void DeleteEntry(page_id_t page_id, const KeyType &key);
+
+  auto GetBrotherPageId(page_id_t page_id, bool prev, KeyType &divide_key) -> page_id_t;
+
+  void MergePage(page_id_t left_page_id, page_id_t right_page_id, const KeyType &key);
+
   void UpdateRootPageId(int insert_record = 0);
 
   /* Debug Routines for FREE!! */
