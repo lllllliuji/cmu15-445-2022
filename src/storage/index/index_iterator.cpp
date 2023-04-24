@@ -30,8 +30,10 @@ INDEXITERATOR_TYPE::~IndexIterator() { buffer_pool_manager_->UnpinPage(page_id_,
 
 INDEX_TEMPLATE_ARGUMENTS
 auto INDEXITERATOR_TYPE::IsEnd() -> bool {
-  auto *leaf_page = reinterpret_cast<LeafPage *>(page_->GetData());
-  return static_cast<bool>(pos_ == leaf_page->GetMaxSize() - 1 && leaf_page->GetNextPageId() == INVALID_PAGE_ID);
+  return page_id_ == INVALID_PAGE_ID;
+  // auto leaf_page = reinterpret_cast<LeafPage *>(page_->GetData());
+  // return static_cast<bool>(leaf_page == nullptr || (pos_ == leaf_page->GetMaxSize() - 1 && leaf_page->GetNextPageId()
+  // == INVALID_PAGE_ID));
 }
 
 INDEX_TEMPLATE_ARGUMENTS
@@ -42,12 +44,12 @@ auto INDEXITERATOR_TYPE::operator*() -> const MappingType & {
 
 INDEX_TEMPLATE_ARGUMENTS
 auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & {
-  auto *leaf_page = reinterpret_cast<LeafPage *>(page_->GetData());
   pos_++;
-  if (pos_ == leaf_page->GetSize()) {
+  auto *leaf_page = reinterpret_cast<LeafPage *>(page_->GetData());
+  if (pos_ >= leaf_page->GetSize()) {
     pos_ = 0;
+    buffer_pool_manager_->UnpinPage(page_id_, false);
     page_id_ = leaf_page->GetNextPageId();
-    buffer_pool_manager_->UnpinPage(page_->GetPageId(), false);
     if (page_id_ == INVALID_PAGE_ID) {
       page_ = nullptr;
     } else {

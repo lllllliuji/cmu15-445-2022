@@ -62,6 +62,16 @@ void BPlusTreePage::SetParentPageId(page_id_t parent_page_id) { this->parent_pag
 auto BPlusTreePage::GetPageId() const -> page_id_t { return this->page_id_; }
 void BPlusTreePage::SetPageId(page_id_t page_id) { this->page_id_ = page_id; }
 
+auto BPlusTreePage::InsertSafe() const -> bool {
+  // leaf page split after reach max size, so it's unsafe at maxsize - 1
+  if (IsLeafPage()) {
+    return GetSize() < GetMaxSize() - 1;
+  }
+  return GetSize() < GetMaxSize();
+}
+
+auto BPlusTreePage::RemoveSafe() const -> bool { return GetSize() > GetMinSize(); }
+
 /*
  * Helper methods to set lsn
  */

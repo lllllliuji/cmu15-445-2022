@@ -87,6 +87,8 @@ class BufferPoolManager {
   /** @return size of the buffer pool */
   virtual auto GetPoolSize() -> size_t = 0;
 
+  // virtual void Print() = 0;
+
  protected:
   /**
    * Grading function. Do not modify!

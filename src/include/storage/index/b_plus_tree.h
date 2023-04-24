@@ -78,23 +78,27 @@ class BPlusTree {
   void RemoveFromFile(const std::string &file_name, Transaction *transaction = nullptr);
 
  private:
-  auto FindLeaf(const KeyType &key) -> page_id_t;
+  auto FindLeaf(Page *root_page, const KeyType &key, Transaction *transaction) -> Page *;
 
-  auto SplitInternal(page_id_t internal_page_id) -> page_id_t;
+  auto InsertInternal(Page *internal_page, KeyType key, page_id_t page_id) -> Page *;
 
-  auto SplitLeaf(page_id_t leaf_page_id) -> page_id_t;
+  auto SplitLeaf(LeafPage *leaf_page) -> Page *;
 
-  void InsertInParent(page_id_t l_page_id, page_id_t r_page_id);
+  void InsertInParent(Page *l_page, Page *r_page, Transaction *transaction);
 
-  auto InsertInLeaf(page_id_t leaf_page_id, const KeyType &key, const ValueType &value) -> bool;
+  auto InsertInLeaf(LeafPage *leaf_page, const KeyType &key, const ValueType &value) -> bool;
 
-  void Delete(page_id_t page_id, const KeyType &key);
+  auto PessimisticInsert(const KeyType &key, const ValueType &value, Transaction *transaction) -> bool;
 
-  void DeleteEntry(page_id_t page_id, const KeyType &key);
+  void PessimisticRemove(const KeyType &key, Transaction *transaction);
 
-  auto GetBrotherPageId(page_id_t page_id, bool prev, KeyType &divide_key) -> page_id_t;
+  void Delete(Page *page, const KeyType &key, Transaction *transaction);
 
-  void MergePage(page_id_t left_page_id, page_id_t right_page_id, const KeyType &key);
+  void DeleteEntry(Page *page, const KeyType &key, Transaction *transaction);
+
+  auto GetBrotherPageId(page_id_t page_id, bool prev, KeyType &divide_key, Transaction *transaction) -> page_id_t;
+
+  void MergePage(page_id_t left_page_id, page_id_t right_page_id, const KeyType &key, Transaction *transaction);
 
   void UpdateRootPageId(int insert_record = 0);
 
@@ -110,6 +114,8 @@ class BPlusTree {
   KeyComparator comparator_;
   int leaf_max_size_;
   int internal_max_size_;
+  Page abstrat_layer_{};
+  Page *dummy_page_;
 };
 
 }  // namespace bustub

@@ -60,6 +60,9 @@ class BPlusTreePage {
   auto GetPageId() const -> page_id_t;
   void SetPageId(page_id_t page_id);
 
+  auto InsertSafe() const -> bool;
+  auto RemoveSafe() const -> bool;
+
   void SetLSN(lsn_t lsn = INVALID_LSN);
 
  private:

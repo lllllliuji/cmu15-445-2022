@@ -52,6 +52,14 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   /** @brief Return the pointer to all the pages in the buffer pool. */
   auto GetPages() -> Page * { return pages_; }
 
+  // void Print() override {
+  //   for (size_t i = 0; i < pool_size_; i++) {
+  //     std::cout << "frame_id " << i << " pin_count " << pages_[i].GetPinCount() << " page_id " <<
+  //     pages_[i].GetPageId()
+  //               << std::endl;
+  //   }
+  // }
+
  protected:
   /**
    * TODO(P1): Add implementation
@@ -192,22 +200,23 @@ class BufferPoolManagerInstance : public BufferPoolManager {
       return true;
     }
     if (replacer_->Evict(&frame_id)) {
-      pages_[frame_id].WLatch();
+      // std::cout << "frame_id " << frame_id << " evict out" << std::endl;
+      // pages_[frame_id].WLatch();
       page_table_->Remove(pages_[frame_id].page_id_);
       if (pages_[frame_id].IsDirty()) {
         disk_manager_->WritePage(pages_[frame_id].GetPageId(), pages_[frame_id].GetData());
       }
       ResetPage(frame_id);
-      pages_[frame_id].WUnlatch();
+      // pages_[frame_id].WUnlatch();
       return true;
     }
     return false;
   }
 
   void PinPage(frame_id_t frame_id) {
-    pages_[frame_id].WLatch();
+    // pages_[frame_id].WLatch();
     pages_[frame_id].pin_count_++;
-    pages_[frame_id].WUnlatch();
+    // pages_[frame_id].WUnlatch();
   }
 };
 }  // namespace bustub
