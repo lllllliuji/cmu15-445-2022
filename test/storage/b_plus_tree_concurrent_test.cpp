@@ -349,7 +349,7 @@ void MixTest1Call() {
     auto *disk_manager = new DiskManager("test.db");
     BufferPoolManager *bpm = new BufferPoolManagerInstance(50, disk_manager);
     // create b+ tree
-    BPlusTree<GenericKey<8>, RID, GenericComparator<8>> tree("foo_pk", bpm, comparator, 20, 20);
+    BPlusTree<GenericKey<8>, RID, GenericComparator<8>> tree("foo_pk", bpm, comparator, 3, 5);
 
     // create and fetch header_page
     page_id_t page_id;
@@ -607,17 +607,17 @@ void MixTest4Call() {
   }
 }
 
-// /*
-//  * Score: 5
-//  * Description: Concurrently insert a set of keys.
-//  */
-// TEST(BPlusTreeTestC2Con, InsertTest1) {
-//   TEST_TIMEOUT_BEGIN
-//   InsertTest1Call();
-//   remove("test.db");
-//   remove("test.log");
-//   TEST_TIMEOUT_FAIL_END(1000 * 600)
-// }
+/*
+ * Score: 5
+ * Description: Concurrently insert a set of keys.
+ */
+TEST(BPlusTreeTestC2Con, InsertTest1) {
+  TEST_TIMEOUT_BEGIN
+  InsertTest1Call();
+  remove("test.db");
+  remove("test.log");
+  TEST_TIMEOUT_FAIL_END(1000 * 600)
+}
 
 /*
  * Score: 5

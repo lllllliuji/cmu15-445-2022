@@ -53,10 +53,6 @@ auto BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result
     return false;
   }
   Page *root_page = buffer_pool_manager_->FetchPage(root_page_id_);
-  if (root_page == nullptr) {
-    dummy_page_->RUnlatch();
-    return false;
-  }
   root_page->RLatch();
   dummy_page_->RUnlatch();
   Page *page = FindLeaf(root_page, key, nullptr);
@@ -271,14 +267,14 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
   }
   // 1. optimistic
   auto leaf_page = reinterpret_cast<LeafPage *>(page->GetData());
+  auto index = leaf_page->LowerBound(key, comparator_);
+  // duplicate key
+  if (index < leaf_page->GetSize() && comparator_(key, leaf_page->KeyAt(index)) == 0) {
+    page->WUnlatch();
+    buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
+    return false;
+  }
   if (leaf_page->InsertSafe()) {
-    auto page_set = transaction->GetPageSet();
-    while (!page_set->empty()) {
-      auto tmp_page = page_set->front();
-      page_set->pop_front();
-      tmp_page->RUnlatch();
-      buffer_pool_manager_->UnpinPage(tmp_page->GetPageId(), false);
-    }
     bool success = InsertInLeaf(leaf_page, key, value);
     page->WUnlatch();
     buffer_pool_manager_->UnpinPage(page->GetPageId(), success);
@@ -349,7 +345,7 @@ auto BPLUSTREE_TYPE::PessimisticInsert(const KeyType &key, const ValueType &valu
   bool success = InsertInLeaf(leaf_page, key, value);
   // duplicate key, times fly, may be this update aquire the write lock on leaf from root, leaf may be safe
   if (leaf_page->GetSize() < leaf_page->GetMaxSize()) {
-    buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
+    // buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
     auto page_set = transaction->GetPageSet();
     while (!page_set->empty()) {
       auto tmp_page = page_set->front();
@@ -412,24 +408,10 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
   if (index >= leaf_page->GetSize() || comparator_(key, leaf_page->KeyAt(index)) != 0) {
     page->RUnlatch();
     buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
-    auto page_set = transaction->GetPageSet();
-    while (!page_set->empty()) {
-      auto tmp_page = page_set->front();
-      page_set->pop_front();
-      tmp_page->RUnlatch();
-      buffer_pool_manager_->UnpinPage(tmp_page->GetPageId(), false);
-    }
     return;
   }
   // 1. optimistic delete
   if (leaf_page->RemoveSafe()) {
-    auto page_set = transaction->GetPageSet();
-    while (!page_set->empty()) {
-      auto tmp_page = page_set->front();
-      page_set->pop_front();
-      tmp_page->RUnlatch();
-      buffer_pool_manager_->UnpinPage(tmp_page->GetPageId(), false);
-    }
     Delete(page, key, transaction);
     page->WUnlatch();
     buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
@@ -453,6 +435,10 @@ void BPLUSTREE_TYPE::PessimisticRemove(const KeyType &key, Transaction *transact
   assert(transaction->GetPageSet()->empty());
   assert(transaction->GetDeletedPageSet()->empty());
   dummy_page_->WLatch();
+  if (IsEmpty()) {
+    dummy_page_->WUnlatch();
+    return;
+  }
   Page *page = buffer_pool_manager_->FetchPage(root_page_id_);
   page->WLatch();
   auto b_plus_tree_page = reinterpret_cast<BPlusTreePage *>(page->GetData());
@@ -484,8 +470,6 @@ void BPLUSTREE_TYPE::PessimisticRemove(const KeyType &key, Transaction *transact
   }
   // recursive delete
   DeleteEntry(page, key, transaction);
-  page->WUnlatch();
-  buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
   auto page_set = transaction->GetPageSet();
   while (!page_set->empty()) {
     auto tmp_page = page_set->front();
@@ -493,6 +477,8 @@ void BPLUSTREE_TYPE::PessimisticRemove(const KeyType &key, Transaction *transact
     tmp_page->WUnlatch();
     buffer_pool_manager_->UnpinPage(tmp_page->GetPageId(), true);
   }
+  page->WUnlatch();
+  buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
   // delete pages
   for (auto delete_page_id : *transaction->GetDeletedPageSet()) {
     buffer_pool_manager_->DeletePage(delete_page_id);
