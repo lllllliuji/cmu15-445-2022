@@ -47,18 +47,16 @@ class SimpleAggregationHashTable {
     std::vector<Value> values{};
     for (const auto &agg_type : agg_types_) {
       switch (agg_type) {
-        case AggregationType::CountAggregate:
-        case AggregationType::SumAggregate:
-          // Count/Sum starts at zero.
+        case AggregationType::CountStarAggregate:
+          // Count start starts at zero.
           values.emplace_back(ValueFactory::GetIntegerValue(0));
           break;
+        case AggregationType::CountAggregate:
+        case AggregationType::SumAggregate:
         case AggregationType::MinAggregate:
-          // Min starts at INT_MAX.
-          values.emplace_back(ValueFactory::GetIntegerValue(BUSTUB_INT32_MAX));
-          break;
         case AggregationType::MaxAggregate:
-          // Max starts at INT_MIN.
-          values.emplace_back(ValueFactory::GetIntegerValue(BUSTUB_INT32_MIN));
+          // Others starts at null.
+          values.emplace_back(ValueFactory::GetNullValueByType(TypeId::INTEGER));
           break;
       }
     }
@@ -66,6 +64,8 @@ class SimpleAggregationHashTable {
   }
 
   /**
+   * TODO(Student)
+   *
    * Combines the input into the aggregation result.
    * @param[out] result The output aggregate value
    * @param input The input value
@@ -73,21 +73,11 @@ class SimpleAggregationHashTable {
   void CombineAggregateValues(AggregateValue *result, const AggregateValue &input) {
     for (uint32_t i = 0; i < agg_exprs_.size(); i++) {
       switch (agg_types_[i]) {
+        case AggregationType::CountStarAggregate:
         case AggregationType::CountAggregate:
-          // Count increases by one.
-          result->aggregates_[i] = result->aggregates_[i].Add(ValueFactory::GetIntegerValue(1));
-          break;
         case AggregationType::SumAggregate:
-          // Sum increases by addition.
-          result->aggregates_[i] = result->aggregates_[i].Add(input.aggregates_[i]);
-          break;
         case AggregationType::MinAggregate:
-          // Min is just the min.
-          result->aggregates_[i] = result->aggregates_[i].Min(input.aggregates_[i]);
-          break;
         case AggregationType::MaxAggregate:
-          // Max is just the max.
-          result->aggregates_[i] = result->aggregates_[i].Max(input.aggregates_[i]);
           break;
       }
     }
@@ -104,6 +94,11 @@ class SimpleAggregationHashTable {
     }
     CombineAggregateValues(&ht_[agg_key], agg_val);
   }
+
+  /**
+   * Clear the hash table
+   */
+  void Clear() { ht_.clear(); }
 
   /** An iterator over the aggregation hash table */
   class Iterator {

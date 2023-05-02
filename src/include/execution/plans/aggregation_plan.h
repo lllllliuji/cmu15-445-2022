@@ -26,7 +26,7 @@
 namespace bustub {
 
 /** AggregationType enumerates all the possible aggregation functions in our system */
-enum class AggregationType { CountAggregate, SumAggregate, MinAggregate, MaxAggregate };
+enum class AggregationType { CountStarAggregate, CountAggregate, SumAggregate, MinAggregate, MaxAggregate };
 
 /**
  * AggregationPlanNode represents the various SQL aggregation functions.
@@ -40,7 +40,6 @@ class AggregationPlanNode : public AbstractPlanNode {
    * Construct a new AggregationPlanNode.
    * @param output_schema The output format of this plan node
    * @param child The child plan to aggregate data over
-   * @param having The having clause of the aggregation
    * @param group_bys The group by clause of the aggregation
    * @param aggregates The expressions that we are aggregating
    * @param agg_types The types that we are aggregating
@@ -82,7 +81,6 @@ class AggregationPlanNode : public AbstractPlanNode {
 
   BUSTUB_PLAN_NODE_CLONE_WITH_CHILDREN(AggregationPlanNode);
 
- private:
   /** The GROUP BY expressions */
   std::vector<AbstractExpressionRef> group_bys_;
   /** The aggregation expressions */
@@ -147,6 +145,9 @@ struct fmt::formatter<bustub::AggregationType> : formatter<std::string> {
     using bustub::AggregationType;
     std::string name = "unknown";
     switch (c) {
+      case AggregationType::CountStarAggregate:
+        name = "count_star";
+        break;
       case AggregationType::CountAggregate:
         name = "count";
         break;
