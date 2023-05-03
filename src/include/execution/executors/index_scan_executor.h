@@ -18,6 +18,7 @@
 #include "execution/executor_context.h"
 #include "execution/executors/abstract_executor.h"
 #include "execution/plans/index_scan_plan.h"
+#include "storage/index/index_iterator.h"
 #include "storage/table/tuple.h"
 
 namespace bustub {
@@ -44,5 +45,8 @@ class IndexScanExecutor : public AbstractExecutor {
  private:
   /** The index scan plan node to be executed. */
   const IndexScanPlanNode *plan_;
+  TableInfo *table_info_;
+  BPlusTreeIndexIteratorForOneIntegerColumn index_iter_;
+  BPlusTreeIndexIteratorForOneIntegerColumn index_iter_end_;
 };
 }  // namespace bustub
