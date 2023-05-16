@@ -28,7 +28,7 @@ InsertExecutor::InsertExecutor(ExecutorContext *exec_ctx, const InsertPlanNode *
   table_index_infos_ = catalog->GetTableIndexes(table_info_->name_);
 }
 
-void InsertExecutor::Init() {}
+void InsertExecutor::Init() { child_executor_->Init(); }
 
 auto InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
   if (completed_) {
