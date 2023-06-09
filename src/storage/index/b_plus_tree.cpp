@@ -378,7 +378,7 @@ auto BPLUSTREE_TYPE::PessimisticInsert(const KeyType &key, const ValueType &valu
  *****************************************************************************/
 /*
  * Delete key & value pair associated with input key
- * If current tree is empty, return immdiately.
+ * If current tree is empty, return immediately.
  * If not, User needs to first find the right leaf page as deletion target, then
  * delete entry from leaf page. Remember to deal with redistribute or merge if
  * necessary.
