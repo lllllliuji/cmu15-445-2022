@@ -319,7 +319,9 @@ class LockManager {
 
   void BuildWaitForGraph();
 
-  auto TopologicalSort() -> txn_id_t;
+  auto Dfs(txn_id_t curr, std::unordered_set<txn_id_t> &visited, std::vector<txn_id_t> &path) -> txn_id_t;
+
+  // auto TopologicalSort() -> txn_id_t;
 
   auto GetRowQueue(RID rid) -> std::shared_ptr<LockRequestQueue>;
 
