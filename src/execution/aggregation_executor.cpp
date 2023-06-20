@@ -25,8 +25,7 @@ AggregationExecutor::AggregationExecutor(ExecutorContext *exec_ctx, const Aggreg
       plan_(plan),
       child_(std::move(child)),
       aht_(plan_->GetAggregates(), plan_->GetAggregateTypes()),
-      aht_iterator_(aht_.Begin()),
-      first_(true) {
+      aht_iterator_(aht_.Begin()) {
   // std::cout << this << " aggregator constructor" << std::endl;
 }
 

@@ -15,8 +15,10 @@
 #include <algorithm>
 #include <condition_variable>  // NOLINT
 #include <list>
+#include <map>
 #include <memory>
 #include <mutex>  // NOLINT
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -64,7 +66,7 @@ class LockManager {
   class LockRequestQueue {
    public:
     /** List of lock requests for the same resource (table or row) */
-    std::list<LockRequest *> request_queue_;
+    std::list<std::shared_ptr<LockRequest>> request_queue_;
     /** For notifying blocked transactions on this rid */
     std::condition_variable cv_;
     /** txn_id of an upgrading transaction (if any) */
@@ -312,8 +314,36 @@ class LockManager {
   std::atomic<bool> enable_cycle_detection_;
   std::thread *cycle_detection_thread_;
   /** Waits-for graph representation. */
-  std::unordered_map<txn_id_t, std::vector<txn_id_t>> waits_for_;
+  std::map<txn_id_t, std::set<txn_id_t>> waits_for_;
   std::mutex waits_for_latch_;
+
+  void BuildWaitForGraph();
+
+  auto TopologicalSort() -> txn_id_t;
+
+  auto GetRowQueue(RID rid) -> std::shared_ptr<LockRequestQueue>;
+
+  auto GetTableQueue(table_oid_t oid) -> std::shared_ptr<LockRequestQueue>;
+
+  auto HoldLock(Transaction *txn, table_oid_t oid, LockMode &lock_mode) -> bool;
+
+  auto HoldLock(Transaction *txn, table_oid_t oid, RID rid, LockMode &lock_mode) -> bool;
+
+  auto IsCompatible(LockMode a, LockMode b) -> bool;
+
+  auto IsUpgradeable(LockMode a, LockMode b) -> bool;
+
+  auto NormalLockRequestCheck(Transaction *txn, LockMode lock_mode, AbortReason &abort_reason) -> bool;
+
+  auto NormalUnlockRequestCheck(Transaction *txn, table_oid_t oid, LockMode &lock_mode, AbortReason &abort_reason)
+      -> bool;
+
+  auto RowLockRequestCheck(Transaction *txn, LockMode lock_mode, table_oid_t oid, AbortReason &abort_reason) -> bool;
+
+  auto RowUnLockRequestCheck(Transaction *txn, table_oid_t oid, RID rid, LockMode &lock_mode, AbortReason &abort_reason)
+      -> bool;
+
+  void UpdateTxnStateOnUnlock(Transaction *txn, LockMode lock_mode);
 };
 
 }  // namespace bustub

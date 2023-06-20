@@ -19,7 +19,7 @@ LimitExecutor::LimitExecutor(ExecutorContext *exec_ctx, const LimitPlanNode *pla
     : AbstractExecutor(exec_ctx),
       plan_(plan),
       child_executor_(std::move(child_executor)),
-      output_num_(0),
+      // output_num_(0),
       output_limit_(plan->GetLimit()) {}
 
 void LimitExecutor::Init() { child_executor_->Init(); }

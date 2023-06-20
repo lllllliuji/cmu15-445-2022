@@ -242,6 +242,6 @@ class AggregationExecutor : public AbstractExecutor {
   /** Simple aggregation hash table iterator */
   // TODO(Student): Uncomment SimpleAggregationHashTable::Iterator aht_iterator_;
   SimpleAggregationHashTable::Iterator aht_iterator_;
-  bool first_;
+  bool first_{true};
 };
 }  // namespace bustub
