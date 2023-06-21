@@ -12,6 +12,8 @@
 
 #include <memory>
 
+#include "common/config.h"
+#include "concurrency/lock_manager.h"
 #include "execution/executors/delete_executor.h"
 
 namespace bustub {
@@ -25,7 +27,20 @@ DeleteExecutor::DeleteExecutor(ExecutorContext *exec_ctx, const DeletePlanNode *
   table_index_infos_ = catalog->GetTableIndexes(table_info_->name_);
 }
 
-void DeleteExecutor::Init() { child_executor_->Init(); }
+void DeleteExecutor::Init() {
+  child_executor_->Init();
+  auto txn = exec_ctx_->GetTransaction();
+  if (!txn->IsTableIntentionExclusiveLocked(plan_->TableOid())) {
+    std::cout << "Txn " << exec_ctx_->GetTransaction()->GetTransactionId() << " ";
+    std::cout << "Delete Init " << std::endl;
+    auto success =
+        exec_ctx_->GetLockManager()->LockTable(txn, LockManager::LockMode::INTENTION_EXCLUSIVE, plan_->TableOid());
+    if (!success) {
+      txn->SetState(TransactionState::ABORTED);
+      throw ExecutionException("Delete LockTable IX Failed");
+    }
+  }
+}
 
 auto DeleteExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
   if (completed_) {
@@ -34,7 +49,10 @@ auto DeleteExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
   Tuple tmp_tuple{};
   RID tmp_rid{};
   int32_t count = 0;
+  auto txn = exec_ctx_->GetTransaction();
   while (child_executor_->Next(&tmp_tuple, &tmp_rid)) {
+    // std::cout << "Delete ";
+    exec_ctx_->GetLockManager()->LockRow(txn, LockManager::LockMode::EXCLUSIVE, plan_->TableOid(), tmp_rid);
     table_info_->table_->MarkDelete(tmp_rid, exec_ctx_->GetTransaction());
     for (auto index_info : table_index_infos_) {
       auto key_tuple =

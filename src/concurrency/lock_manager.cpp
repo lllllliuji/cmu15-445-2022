@@ -122,7 +122,7 @@ auto LockManager::IsUpgradeable(LockMode a, LockMode b) -> bool {
       }
       break;
     case LockMode::EXCLUSIVE:
-      std::cout << "X" << std::endl;
+      // std::cout << "X" << std::endl;
       return false;
   }
   return true;
@@ -296,25 +296,25 @@ void LockManager::UpdateTxnStateOnUnlock(Transaction *txn, LockMode unlock_mode)
 }
 
 auto LockManager::LockTable(Transaction *txn, LockMode lock_mode, const table_oid_t &oid) -> bool {
-  std::cout << "LockTable: TransactionId " << txn->GetTransactionId();
-  switch (lock_mode) {
-    case LockMode::INTENTION_SHARED:
-      std::cout << " IS";
-      break;
-    case LockMode::INTENTION_EXCLUSIVE:
-      std::cout << " IX";
-      break;
-    case LockMode::SHARED:
-      std::cout << " S";
-      break;
-    case LockMode::SHARED_INTENTION_EXCLUSIVE:
-      std::cout << " SIX";
-      break;
-    case LockMode::EXCLUSIVE:
-      std::cout << " X";
-      break;
-  }
-  std::cout << " TableId " << oid << std::endl;
+  // std::cout << "LockTable: TransactionId " << txn->GetTransactionId();
+  // switch (lock_mode) {
+  //   case LockMode::INTENTION_SHARED:
+  //     std::cout << " IS";
+  //     break;
+  //   case LockMode::INTENTION_EXCLUSIVE:
+  //     std::cout << " IX";
+  //     break;
+  //   case LockMode::SHARED:
+  //     std::cout << " S";
+  //     break;
+  //   case LockMode::SHARED_INTENTION_EXCLUSIVE:
+  //     std::cout << " SIX";
+  //     break;
+  //   case LockMode::EXCLUSIVE:
+  //     std::cout << " X";
+  //     break;
+  // }
+  // std::cout << " TableId " << oid << std::endl;
   txn->LockTxn();
   // 1. check correct lock mode depending on isolation level
   AbortReason abort_reason{};
@@ -455,32 +455,32 @@ auto LockManager::LockTable(Transaction *txn, LockMode lock_mode, const table_oi
   }
   lk.unlock();
   table_queue->cv_.notify_all();
-  std::cout << "LockTable: TransactionId " << txn->GetTransactionId();
-  switch (lock_mode) {
-    case LockMode::INTENTION_SHARED:
-      std::cout << " IS";
-      break;
-    case LockMode::INTENTION_EXCLUSIVE:
-      std::cout << " IX";
-      break;
-    case LockMode::SHARED:
-      std::cout << " S";
-      break;
-    case LockMode::SHARED_INTENTION_EXCLUSIVE:
-      std::cout << " SIX";
-      break;
-    case LockMode::EXCLUSIVE:
-      std::cout << " X";
-      break;
-  }
-  std::cout << " TableId " << oid << " Success!" << std::endl;
+  // std::cout << "LockTable: TransactionId " << txn->GetTransactionId();
+  // switch (lock_mode) {
+  //   case LockMode::INTENTION_SHARED:
+  //     std::cout << " IS";
+  //     break;
+  //   case LockMode::INTENTION_EXCLUSIVE:
+  //     std::cout << " IX";
+  //     break;
+  //   case LockMode::SHARED:
+  //     std::cout << " S";
+  //     break;
+  //   case LockMode::SHARED_INTENTION_EXCLUSIVE:
+  //     std::cout << " SIX";
+  //     break;
+  //   case LockMode::EXCLUSIVE:
+  //     std::cout << " X";
+  //     break;
+  // }
+  // std::cout << " TableId " << oid << " Success!" << std::endl;
   // std::cout << "HoldLock " << HoldLock(txn, oid, cur_mode) << std::endl;
   return true;
 }
 
 auto LockManager::UnlockTable(Transaction *txn, const table_oid_t &oid) -> bool {
-  std::cout << "UnlockTable: TransactionId " << txn->GetTransactionId();
-  std::cout << " TableId " << oid << std::endl;
+  // std::cout << "UnlockTable: TransactionId " << txn->GetTransactionId();
+  // std::cout << " TableId " << oid << std::endl;
   auto table_queue = GetTableQueue(oid);
   txn->LockTxn();
   std::unique_lock<std::mutex> lk(table_queue->latch_);
@@ -526,35 +526,35 @@ auto LockManager::UnlockTable(Transaction *txn, const table_oid_t &oid) -> bool 
 }
 
 auto LockManager::LockRow(Transaction *txn, LockMode lock_mode, const table_oid_t &oid, const RID &rid) -> bool {
-  std::cout << "LockRow: TransactionId " << txn->GetTransactionId();
-  switch (lock_mode) {
-    case LockMode::INTENTION_SHARED:
-      std::cout << " IS";
-      break;
-    case LockMode::INTENTION_EXCLUSIVE:
-      std::cout << " IX";
-      break;
-    case LockMode::SHARED:
-      std::cout << " S";
-      break;
-    case LockMode::SHARED_INTENTION_EXCLUSIVE:
-      std::cout << " SIX";
-      break;
-    case LockMode::EXCLUSIVE:
-      std::cout << " X";
-      break;
-  }
-  std::cout << " TableId " << oid << " Rid " << rid.Get() << std::endl;
+  // std::cout << "LockRow: TransactionId " << txn->GetTransactionId();
+  // switch (lock_mode) {
+  //   case LockMode::INTENTION_SHARED:
+  //     std::cout << " IS";
+  //     break;
+  //   case LockMode::INTENTION_EXCLUSIVE:
+  //     std::cout << " IX";
+  //     break;
+  //   case LockMode::SHARED:
+  //     std::cout << " S";
+  //     break;
+  //   case LockMode::SHARED_INTENTION_EXCLUSIVE:
+  //     std::cout << " SIX";
+  //     break;
+  //   case LockMode::EXCLUSIVE:
+  //     std::cout << " X";
+  //     break;
+  // }
+  // std::cout << " TableId " << oid << " Rid " << rid.Get() << std::endl;
   auto row_queue = GetRowQueue(rid);
   txn->LockTxn();
   std::unique_lock<std::mutex> lk(row_queue->latch_);
   AbortReason abort_reason;
-  if (!NormalLockRequestCheck(txn, lock_mode, abort_reason)) {
+  if (!RowLockRequestCheck(txn, lock_mode, oid, abort_reason)) {
     txn->SetState(TransactionState::ABORTED);
     txn->UnlockTxn();
     throw TransactionAbortException(txn->GetTransactionId(), abort_reason);
   }
-  if (!RowLockRequestCheck(txn, lock_mode, oid, abort_reason)) {
+  if (!NormalLockRequestCheck(txn, lock_mode, abort_reason)) {
     txn->SetState(TransactionState::ABORTED);
     txn->UnlockTxn();
     throw TransactionAbortException(txn->GetTransactionId(), abort_reason);
@@ -591,10 +591,10 @@ auto LockManager::LockRow(Transaction *txn, LockMode lock_mode, const table_oid_
     });
     switch (cur_mode) {
       case LockMode::SHARED:
-        txn->GetSharedRowLockSet()->erase(oid);
+        txn->GetSharedRowLockSet()->operator[](oid).erase(rid);
         break;
       case LockMode::EXCLUSIVE:
-        txn->GetExclusiveRowLockSet()->erase(oid);
+        txn->GetExclusiveRowLockSet()->operator[](oid).erase(rid);
         break;
       case LockMode::INTENTION_SHARED:
       case LockMode::INTENTION_EXCLUSIVE:
@@ -620,7 +620,7 @@ auto LockManager::LockRow(Transaction *txn, LockMode lock_mode, const table_oid_
                      [](const std::shared_ptr<LockRequest> &lock_request) { return !lock_request->granted_; });
     // this request is not the first ungranted, need to wait
     if ((*first_ungranted)->txn_id_ != txn->GetTransactionId() || (*first_ungranted)->lock_mode_ != lock_mode ||
-        (*first_ungranted)->oid_ != oid || !((*first_ungranted)->rid_ == rid)) {
+        (*first_ungranted)->oid_ != oid) {
       txn->UnlockTxn();
       return false;
     }
@@ -669,31 +669,31 @@ auto LockManager::LockRow(Transaction *txn, LockMode lock_mode, const table_oid_
   }
   lk.unlock();
   row_queue->cv_.notify_all();
-  std::cout << "LockRow: TransactionId " << txn->GetTransactionId();
-  switch (lock_mode) {
-    case LockMode::INTENTION_SHARED:
-      std::cout << " IS";
-      break;
-    case LockMode::INTENTION_EXCLUSIVE:
-      std::cout << " IX";
-      break;
-    case LockMode::SHARED:
-      std::cout << " S";
-      break;
-    case LockMode::SHARED_INTENTION_EXCLUSIVE:
-      std::cout << " SIX";
-      break;
-    case LockMode::EXCLUSIVE:
-      std::cout << " X";
-      break;
-  }
-  std::cout << " TableId " << oid << " Rid " << rid.Get() << " Success!" << std::endl;
+  // std::cout << "LockRow: TransactionId " << txn->GetTransactionId();
+  // switch (lock_mode) {
+  //   case LockMode::INTENTION_SHARED:
+  //     std::cout << " IS";
+  //     break;
+  //   case LockMode::INTENTION_EXCLUSIVE:
+  //     std::cout << " IX";
+  //     break;
+  //   case LockMode::SHARED:
+  //     std::cout << " S";
+  //     break;
+  //   case LockMode::SHARED_INTENTION_EXCLUSIVE:
+  //     std::cout << " SIX";
+  //     break;
+  //   case LockMode::EXCLUSIVE:
+  //     std::cout << " X";
+  //     break;
+  // }
+  // std::cout << " TableId " << oid << " Rid " << rid.Get() << " Success!" << std::endl;
   return true;
 }
 
 auto LockManager::UnlockRow(Transaction *txn, const table_oid_t &oid, const RID &rid) -> bool {
-  std::cout << "UnlockRow: TransactionId " << txn->GetTransactionId();
-  std::cout << " TableId " << oid << " Rid " << rid.Get() << std::endl;
+  // std::cout << "UnlockRow: TransactionId " << txn->GetTransactionId();
+  // std::cout << " TableId " << oid << " Rid " << rid.Get() << std::endl;
   auto row_queue = GetRowQueue(rid);
   txn->LockTxn();
   std::unique_lock<std::mutex> lk(row_queue->latch_);
